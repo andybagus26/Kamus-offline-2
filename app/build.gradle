@@ -1,16 +1,18 @@
 apply plugin: 'com.android.application'
 
 android {
+    namespace "com.frostdev.sukamus"  // wajib di AGP 8.x
+    compileSdk 35
+
     compileOptions {
-        targetCompatibility = "8"
-        sourceCompatibility = "8"
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
-    compileSdkVersion 35
-    buildToolsVersion "35.0.0"
+
     defaultConfig {
         applicationId "com.frostdev.sukamus"
-        minSdkVersion 21
-        targetSdkVersion 35
+        minSdk 21
+        targetSdk 35
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -22,6 +24,7 @@ android {
         }
     }
 }
+
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
