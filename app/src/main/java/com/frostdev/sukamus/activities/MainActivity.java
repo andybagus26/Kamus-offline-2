@@ -1,80 +1,96 @@
 package com.frostdev.sukamus.activities;
 
+import android.database.SQLException;
+import android.os.AsyncTask;
 import android.os.Bundle;
-import android.speech.tts.TextToSpeech;
-import android.view.MenuItem;
-import android.widget.Button;
 
-import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.view.GravityCompat;
-import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentTransaction;
 
 import com.frostdev.sukamus.R;
-import com.frostdev.sukamus.fragment.FragmentIndonesiaInggris;
-import com.frostdev.sukamus.fragment.FragmentInggrisIndonesia;
-import com.frostdev.sukamus.fragment.FragmentTranslate;
-import com.google.android.material.navigation.NavigationView;
+import com.frostdev.sukamus.database.KamusHelper;
+import com.frostdev.sukamus.model.ModelKamus;
+import com.frostdev.sukamus.utils.PreferencesManager;
 
-//////created by Frostdev
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 
-
+// TODO: Tambahkan UI/UX baru di sini
+public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
-                this,
-                drawer,
-                toolbar,
-                R.string.navigation_drawer_open,
-                R.string.navigation_drawer_close);
-        drawer.addDrawerListener(toggle);
-        toggle.syncState();
-
-        NavigationView navigationView = findViewById(R.id.nav_view);
-        navigationView.setNavigationItemSelectedListener(this);
-        displaySelectedScreen(R.id.nav_indo_inggris);
+        // Load data kamus ke SQLite saat pertama kali install
+        new LoadData().execute();
     }
 
-    @Override
-    public boolean onNavigationItemSelected(MenuItem item) {
-        displaySelectedScreen(item.getItemId());
-        return true;
+    /**
+     * Membaca file raw (english_indonesia / indonesia_english) dan
+     * memasukkan semua data ke SQLite database saat pertama kali app dijalankan.
+     * Hanya berjalan SEKALI — setelah itu data sudah ada di database.
+     */
+    private class LoadData extends AsyncTask<Void, Void, Void> {
+
+        KamusHelper kamusHelper;
+        PreferencesManager preferencesManager;
+
+        @Override
+        protected void onPreExecute() {
+            kamusHelper = new KamusHelper(getApplicationContext());
+            preferencesManager = new PreferencesManager(getApplicationContext());
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            boolean firstRun = preferencesManager.getFirstTimeLoad();
+            if (firstRun) {
+                ArrayList<ModelKamus> kamusEnglish = preLoadRaw(R.raw.english_indonesia);
+                ArrayList<ModelKamus> kamusIndonesia = preLoadRaw(R.raw.indonesia_english);
+
+                try {
+                    kamusHelper.open();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+
+                kamusHelper.insertTransaction(kamusEnglish, true);
+                kamusHelper.insertTransaction(kamusIndonesia, false);
+                kamusHelper.close();
+
+                preferencesManager.setFirstTimeLoad(false);
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            // TODO: Tampilkan UI utama setelah data siap
+        }
     }
 
-    public void displaySelectedScreen(int itemId) {
-
-        Fragment fragment = null;
-        switch (itemId) {
-            case R.id.nav_indo_inggris:
-                fragment = new FragmentIndonesiaInggris();
-                break;
-            case R.id.nav_inggris_indo:
-                fragment = new FragmentInggrisIndonesia();
-                break;
-            case R.id.nav_translate:
-                fragment = new FragmentTranslate();
-                break;
+    /**
+     * Membaca file raw (tab-separated) dan mengembalikan list ModelKamus.
+     * Format file: [kata]\t[terjemahan]
+     */
+    public ArrayList<ModelKamus> preLoadRaw(int rawResId) {
+        ArrayList<ModelKamus> listKamus = new ArrayList<>();
+        try {
+            InputStream inputStream = getResources().openRawResource(rawResId);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split("\t");
+                if (parts.length >= 2) {
+                    listKamus.add(new ModelKamus(parts[0], parts[1]));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-        if (fragment != null) {
-            FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
-            ft.replace(R.id.content_frame, fragment);
-            ft.commit();
-        }
-
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        drawer.closeDrawer(GravityCompat.START);
+        return listKamus;
     }
 }
