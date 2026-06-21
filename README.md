@@ -4,14 +4,14 @@ Aplikasi kamus Android offline dua arah (Inggris ↔ Indonesia) yang bekerja **t
 
 ---
 
-## 🏗️ Status Project
+## Status Project
 
 > **UI Redesign & Migrasi Kotlin Selesai.**  
 > Struktur kode lama berbasis Java kini telah sepenuhnya dimigrasikan ke Kotlin. Tampilan UI baru yang bersih dan responsif telah diimplementasikan menggunakan `RecyclerView` untuk menampilkan hasil pencarian secara real-time.
 
 ---
 
-## 🧠 Arsitektur Inti
+## Arsitektur Inti
 
 ```
 res/raw/ (data kamus mentah)
@@ -28,7 +28,7 @@ KamusAdapter.kt     → Mengikat & menampilkan hasil kata di RecyclerView
 
 ---
 
-## 📁 Struktur File
+## Struktur File
 
 ```
 app/src/main/
@@ -55,7 +55,7 @@ app/src/main/
 
 ---
 
-## 🔧 Cara Pakai KamusHelper
+## Cara Pakai KamusHelper
 
 ```kotlin
 val helper = KamusHelper(context)
@@ -72,7 +72,7 @@ helper.close()
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Bahasa:** Kotlin (Migrasi penuh dari Java)
 - **Platform:** Android
@@ -82,7 +82,7 @@ helper.close()
 
 ---
 
-## 📌 Catatan Pengembang
+## Catatan Pengembang
 
 - Data kamus di-load ke SQLite **hanya saat pertama kali install/dijalankan** menggunakan `AsyncTask` di `MainActivity.kt`.
 - `PreferencesManager` menyimpan flag boolean `first_time_load` untuk mencegah reload data berulang pada pemuatan selanjutnya.
