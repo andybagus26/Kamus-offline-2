@@ -6,8 +6,8 @@ Aplikasi kamus Android offline dua arah (Inggris ↔ Indonesia) yang bekerja **t
 
 ## 🏗️ Status Project
 
-> **UI sedang dalam proses redesign.**  
-> Lapisan UI/UX lama telah dihapus. Hanya logika inti yang dipertahankan, siap untuk dibangun ulang dengan desain baru.
+> **UI Redesign & Migrasi Kotlin Selesai.**  
+> Struktur kode lama berbasis Java kini telah sepenuhnya dimigrasikan ke Kotlin. Tampilan UI baru yang bersih dan responsif telah diimplementasikan menggunakan `RecyclerView` untuk menampilkan hasil pencarian secara real-time.
 
 ---
 
@@ -16,11 +16,14 @@ Aplikasi kamus Android offline dua arah (Inggris ↔ Indonesia) yang bekerja **t
 ```
 res/raw/ (data kamus mentah)
      ↓
-DatabaseHelper   → setup SQLite (db_kamus)
+DatabaseHelper.kt   → setup SQLite (db_kamus)
      ↓
-KamusHelper      → CRUD & pencarian kata  ← otak utama
+KamusHelper.kt      → CRUD & pencarian kata  ← otak utama
      ↓
-MainActivity     → placeholder UI (siap diisi desain baru)
+MainActivity.kt     → Mengatur UI, memproses pencarian real-time,
+                       dan inisialisasi data SQLite
+     ↓
+KamusAdapter.kt     → Mengikat & menampilkan hasil kata di RecyclerView
 ```
 
 ---
@@ -29,55 +32,58 @@ MainActivity     → placeholder UI (siap diisi desain baru)
 
 ```
 app/src/main/
-├── java/com/frostdev/sukamus/
+├── kotlin/com/frostdev/sukamus/
 │   ├── activities/
-│   │   └── MainActivity.java       ← placeholder, siap didesain ulang
+│   │   ├── MainActivity.kt       ← Activity utama, inisialisasi data, & handling input
+│   │   └── KamusAdapter.kt       ← Adapter RecyclerView untuk menampilkan daftar kata & arti
 │   ├── database/
-│   │   ├── DatabaseContract.java   ← nama tabel & kolom
-│   │   ├── DatabaseHelper.java     ← setup SQLite
-│   │   └── KamusHelper.java        ← otak pencarian & CRUD ⭐
+│   │   ├── DatabaseContract.kt   ← Definisi nama tabel (tb_inggris/tb_indonesia) & kolom
+│   │   ├── DatabaseHelper.kt     ← Setup skema SQLite database
+│   │   └── KamusHelper.kt        ← Helper query database (CRUD & Search) ⭐
 │   ├── model/
-│   │   └── ModelKamus.java         ← model data: kata + terjemahan
+│   │   └── ModelKamus.kt         ← Model data untuk item kata (id, kata, deskripsi)
 │   └── utils/
-│       └── PreferencesManager.java ← cek first run
+│       └── PreferencesManager.kt ← Pengaturan SharedPreferences untuk pengecekan first-run
 └── res/
     ├── layout/
-    │   └── activity_main.xml       ← layout kosong, siap diisi
+    │   ├── activity_main.xml     ← Layout utama (Search bar, Language Switch, RecyclerView)
+    │   └── item_kamus.xml        ← Desain layout untuk baris item di RecyclerView
     └── raw/
-        ├── english_indonesia       ← data kamus Inggris → Indonesia
-        └── indonesia_english       ← data kamus Indonesia → Inggris
+        ├── english_indonesia     ← Sumber data kamus Inggris → Indonesia (tab-separated)
+        └── indonesia_english     ← Sumber data kamus Indonesia → Inggris (tab-separated)
 ```
 
 ---
 
 ## 🔧 Cara Pakai KamusHelper
 
-```java
-KamusHelper helper = new KamusHelper(context);
-helper.open();
+```kotlin
+val helper = KamusHelper(context)
+helper.open()
 
-// Ambil semua kata (true = Inggris→Indo, false = Indo→Inggris)
-ArrayList<ModelKamus> semua = helper.selectAll(true);
+// Ambil semua kata (true = Inggris ↔ Indonesia, false = Indonesia ↔ Inggris)
+val semua = helper.selectAll(true)
 
 // Cari kata berdasarkan prefix
-ArrayList<ModelKamus> hasil = helper.selectByKata("hello", true);
+val hasil = helper.selectByKata("hello", true)
 
-helper.close();
+helper.close()
 ```
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Bahasa:** Java
+- **Bahasa:** Kotlin (Migrasi penuh dari Java)
 - **Platform:** Android
 - **Database:** SQLite (via `SQLiteOpenHelper`)
 - **Data:** File raw tab-separated (`.tsv`)
+- **UI Components:** `RecyclerView` untuk penayangan data dinamis, `Switch` untuk pertukaran arah bahasa.
 
 ---
 
 ## 📌 Catatan Pengembang
 
-- Data kamus di-load ke SQLite **hanya saat pertama kali install** menggunakan `AsyncTask` di `MainActivity`
-- `PreferencesManager` menyimpan flag `FIRST_TIME_KEY` untuk mencegah reload berulang
-- Pencarian menggunakan query `LIKE 'kata%'` (prefix match)
+- Data kamus di-load ke SQLite **hanya saat pertama kali install/dijalankan** menggunakan `AsyncTask` di `MainActivity.kt`.
+- `PreferencesManager` menyimpan flag boolean `first_time_load` untuk mencegah reload data berulang pada pemuatan selanjutnya.
+- Pencarian kata menggunakan query `LIKE 'kata%'` (prefix match) yang berjalan secara real-time saat pengguna mengetik di search bar (menggunakan `TextWatcher`).
